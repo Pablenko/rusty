@@ -1,17 +1,12 @@
 use chrono::{Datelike, Weekday};
 
 fn generate_calendar(date: &chrono::NaiveDate) {
-    println!("\n{}\n", date.format("%B %Y").to_string());
+    println!("\n{}\n", date.format("%B %Y"));
     println!("Mon Tue Wed Thu Fri Sat Sun\n");
 
     let mut next_line = String::new();
     let days_from_monday = date.weekday().num_days_from_monday() as usize;
-    next_line.push_str(
-        std::iter::repeat("    ")
-            .take(days_from_monday)
-            .collect::<String>()
-            .as_str(),
-    );
+    next_line.push_str("    ".repeat(days_from_monday).as_str());
 
     for (day_idx, day) in date
         .iter_days()
