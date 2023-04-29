@@ -30,6 +30,16 @@ struct Aggregation {
     series: Vec<AggregationDT>,
 }
 
+impl Default for Aggregation {
+    fn default() -> Self {
+        Self {
+            start: Utc::now(),
+            end: Utc::now(),
+            series: vec![],
+        }
+    }
+}
+
 struct Demands {
     demands: Mutex<Vec<EnergyDemand>>,
 }
@@ -60,11 +70,15 @@ async fn handle_energy_demand(
 #[get("/aggregation")]
 async fn handle_aggregation_request(db: Data<Demands>) -> impl Responder {
     let demands = db.demands.lock().unwrap();
-    let mut aggregation_sum: i32 = 0;
+    let mut aggregation: Aggregation = Aggregation::default();
     for demand in demands.iter() {
-        aggregation_sum += demand.target_soc;
+        aggregation.series.push(AggregationDT {
+            min_soe: demand.min_soc,
+            max_soe: demand.max_soc,
+            max_charging_power: demand.max_charging_power,
+        });
     }
-    format!("aggregation: {}", aggregation_sum)
+    serde_json::to_string(&aggregation)
 }
 
 #[actix_web::main]
