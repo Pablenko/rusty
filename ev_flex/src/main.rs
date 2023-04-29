@@ -1,24 +1,38 @@
-use actix_web::{web, App, HttpServer, Responder, web::{Data}, post, get};
+use actix_web::{get, post, web, web::Data, App, HttpServer, Responder};
 use chrono::prelude::{DateTime, Utc};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-
 
 #[derive(Serialize, Deserialize)]
 struct EnergyDemand {
     vehicle_id: String,
-    target: i32,
-    current: i32,
-    soc: f32,
-    max_charging_power: f32,
+    min_soc: i32,            // minimum state of charge in percent
+    max_soc: i32,            // maximum state of charge in percent
+    target_soc: i32,         // target state of charge in percent
+    current_soc: i32,        // current state of charge in percent
+    capacity: i32,           // capacity in Wh
+    max_charging_power: i32, // maximum charging power in W
     start: DateTime<Utc>,
     end: DateTime<Utc>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct AggregationDT {
+    min_soe: i32,            // minimum state of charge in Wh
+    max_soe: i32,            // maximum state of charge in Wh
+    max_charging_power: i32, // maximum charging power in W
+}
+
+#[derive(Serialize, Deserialize)]
+struct Aggregation {
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+    series: Vec<AggregationDT>,
 }
 
 struct Demands {
     demands: Mutex<Vec<EnergyDemand>>,
 }
-
 
 impl Demands {
     pub fn new() -> Self {
@@ -33,7 +47,10 @@ impl Demands {
 }
 
 #[post("/demand")]
-async fn handle_energy_demand(db: Data<Demands>, new_demand: web::Json<EnergyDemand>) -> impl Responder {
+async fn handle_energy_demand(
+    db: Data<Demands>,
+    new_demand: web::Json<EnergyDemand>,
+) -> impl Responder {
     println!("{}", serde_json::to_string_pretty(&new_demand).unwrap());
     let response = format!("Received demand for {}!", new_demand.vehicle_id);
     db.insert(new_demand.into_inner());
@@ -45,11 +62,10 @@ async fn handle_aggregation_request(db: Data<Demands>) -> impl Responder {
     let demands = db.demands.lock().unwrap();
     let mut aggregation_sum: i32 = 0;
     for demand in demands.iter() {
-        aggregation_sum += demand.target;
+        aggregation_sum += demand.target_soc;
     }
     format!("aggregation: {}", aggregation_sum)
 }
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
