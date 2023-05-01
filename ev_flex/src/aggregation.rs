@@ -1,6 +1,6 @@
 use crate::demand::EnergyDemand;
 use crate::utils::MinuteDateRange;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -94,4 +94,8 @@ pub fn create_flex_series(demand: &EnergyDemand) -> Option<Vec<AggregationDT>> {
     }
 
     Some(aggregation_series)
+}
+
+pub fn resample_series(series: &mut Vec<AggregationDT>, freq_minutes: u32) {
+    series.retain(|x| x.time.minute() % freq_minutes == 0);
 }

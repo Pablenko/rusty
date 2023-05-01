@@ -1,4 +1,4 @@
-use crate::aggregation::{create_flex_series, Aggregation};
+use crate::aggregation::{create_flex_series, resample_series, Aggregation};
 use crate::demand::{Demands, EnergyDemand};
 use actix_web::{get, post, web, web::Data, Responder};
 
@@ -24,5 +24,6 @@ pub async fn handle_aggregation_request(db: Data<Demands>) -> impl Responder {
             aggregation.series.append(&mut series);
         }
     }
+    resample_series(&mut aggregation.series, 15);
     serde_json::to_string(&aggregation)
 }
